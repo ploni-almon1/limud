@@ -6,6 +6,13 @@
     <title>Slovíčka - Aplikace</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Slovíčka">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="manifest.json">
+
     <style>
         .hidden-view { display: none !important; }
         @keyframes fadeOut { 0% { opacity: 1; } 100% { opacity: 0; display: none; } }
@@ -14,19 +21,16 @@
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
-        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #4f46e5; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
         .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
     </style>
 </head>
-<body class="bg-gray-50 flex flex-col min-h-screen font-sans text-gray-800 selection:bg-indigo-200" onload="vykresliPrehled(); vykresliKnihovnu(); nactiApiKey()">
+<body class="bg-gray-50 flex flex-col min-h-screen font-sans text-gray-800 selection:bg-indigo-200" onload="vykresliPrehled(); vykresliKnihovnu();">
 
-    <div id="oznameni" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-lg z-50 hidden-view font-medium text-sm text-center">
+    <div id="oznameni" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-lg z-50 hidden-view font-medium text-sm text-center min-w-[280px]">
         Akce proběhla úspěšně!
     </div>
 
-    <!-- MODALNÍ OKNO PRO SLOŽKY (V detailu sady) -->
     <div id="modal-slozky" class="hidden-view fixed inset-0 bg-gray-900/40 z-[100] flex items-end sm:items-center justify-center pb-0 sm:pb-4 sm:p-4 transition-opacity">
         <div class="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-5 transform transition-all shadow-2xl">
             <div class="flex justify-between items-center mb-5">
@@ -47,7 +51,6 @@
         </div>
     </div>
 
-    <!-- MODALNÍ OKNO PRO VÝBĚR SAD (V detailu složky) -->
     <div id="modal-pridat-sady" class="hidden-view fixed inset-0 bg-gray-900/40 z-[100] flex items-end sm:items-center justify-center pb-0 sm:pb-4 sm:p-4 transition-opacity">
         <div class="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl p-5 transform transition-all shadow-2xl">
             <div class="flex justify-between items-center mb-5">
@@ -64,7 +67,6 @@
 
     <main class="flex-grow p-4 pb-28">
 
-        <!-- ================= OBRAZOVKA 1: PŘEHLED (HOME) ================= -->
         <div id="view-prehled" class="view-section">
             <div class="flex items-center gap-3 mb-8 mt-4">
                 <div class="relative flex-grow">
@@ -80,7 +82,6 @@
             <div id="seznam-nedavne" class="space-y-3"></div>
         </div>
 
-        <!-- ================= OBRAZOVKA 2: VYTVOŘIT ================= -->
         <div id="view-vytvorit" class="view-section hidden-view">
             <header class="mt-4 mb-6">
                 <h1 class="text-2xl font-bold text-gray-900">Vytvořit</h1>
@@ -94,7 +95,7 @@
                 </button>
                 <button onclick="ukazFormular('ai-sada')" class="bg-gradient-to-br from-indigo-600 to-blue-600 p-4 rounded-2xl shadow-md flex flex-col items-center gap-2 hover:shadow-lg transition">
                     <div class="w-12 h-12 bg-white/20 text-white rounded-full flex items-center justify-center"><i class="fa-solid fa-wand-magic-sparkles text-xl"></i></div>
-                    <span class="font-semibold text-white text-center">AI Sadu (z existujících)</span>
+                    <span class="font-semibold text-white text-center">Prompt pro AI</span>
                 </button>
             </div>
 
@@ -105,49 +106,62 @@
                 </div>
 
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">2. Přidat slovíčka</h2>
+                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Hromadný import (i z AI)</h2>
+                    <textarea id="quizlet-input" placeholder="slovo - překlad" rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50 resize-none mb-3"></textarea>
+                    <button onclick="importovatZQuizletu()" class="w-full bg-white text-gray-700 font-medium py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition flex items-center justify-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> Importovat text</button>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Nebo přidat ručně</h2>
                     <div class="grid grid-cols-2 gap-3 mb-3">
                         <input type="text" id="ruco-slovo" placeholder="Cizí slovo" class="w-full px-3 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 bg-gray-50">
                         <input type="text" id="ruco-preklad" placeholder="Překlad" class="w-full px-3 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 bg-gray-50">
                     </div>
-                    <button onclick="pridatSlovickoRucne()" class="w-full bg-indigo-600 text-white font-medium py-2.5 rounded-xl shadow hover:bg-indigo-700 transition mb-4">Přidat další</button>
+                    <button onclick="pridatSlovickoRucne()" class="w-full bg-indigo-600 text-white font-medium py-2.5 rounded-xl shadow hover:bg-indigo-700 transition mb-4">Přidat slovíčko</button>
                     <div id="nahled-pridanych-slovicek" class="space-y-2 border-t border-gray-100 pt-4 empty:hidden max-h-[300px] overflow-y-auto custom-scroll pr-2"></div>
-                </div>
-
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Hromadný import</h2>
-                    <textarea id="quizlet-input" placeholder="slovo - překlad" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50 resize-none mb-3"></textarea>
-                    <button onclick="importovatZQuizletu()" class="w-full bg-white text-gray-700 font-medium py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition flex items-center justify-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> Importovat</button>
                 </div>
             </div>
 
             <div id="formular-ai-sada" class="hidden-view space-y-6">
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">1. Jak se bude nová sada jmenovat?</h2>
-                    <input type="text" id="ai-sada-nazev" placeholder="Např. Všechno o jídle" class="w-full px-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-lg font-medium text-gray-900">
+                <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-sm text-indigo-800 flex gap-3">
+                    <i class="fa-solid fa-circle-info text-indigo-500 mt-0.5 text-lg"></i>
+                    <p>Zde si vygeneruješ zadání (prompt) pro ChatGPT. Výsledek od AI pak jednoduše zkopíruješ do <b>Hromadného importu</b> v Klasické sadě.</p>
                 </div>
 
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">2. Na jaké téma má AI hledat?</h2>
-                    <input type="text" id="ai-sada-tema" placeholder="Např. jídlo, vaření, ovoce..." class="w-full px-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-indigo-500 bg-indigo-50 text-indigo-900 placeholder-indigo-300">
+                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">1. Na jaké téma chceš slovíčka?</h2>
+                    <input type="text" id="ai-sada-tema" placeholder="Např. jídlo, sport, cestování..." class="w-full px-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-lg font-medium text-gray-900">
                 </div>
 
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">3. Z jakých lekcí má AI čerpat?</h2>
+                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">2. Z jakých lekcí má AI vybírat?</h2>
                     <label class="flex items-center gap-3 p-2 rounded-lg bg-gray-100 cursor-pointer mb-3 border border-gray-200">
                         <input type="checkbox" id="ai-sada-vybrat-vse" onchange="toggleVybratVseAi(this)" class="w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
                         <span class="text-sm font-bold text-gray-800">Vybrat všechny lekce</span>
                     </label>
                     <div id="ai-sada-vyber-lekci" class="space-y-2 max-h-40 overflow-y-auto custom-scroll pr-2"></div>
-                    <button id="btn-vytvorit-ai-sadu" onclick="vytvoritSaduPomociAi()" class="w-full mt-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium py-3.5 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+                    <button onclick="generovatPromptProSadu()" class="w-full mt-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium py-3.5 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-wand-magic-sparkles"></i>
-                        <span>Vytáhnout slovíčka a vytvořit sadu</span>
+                        <span>Vygenerovat text pro AI</span>
                     </button>
+                </div>
+
+                <div id="ai-sada-vysledek" class="hidden-view bg-white p-5 rounded-2xl shadow-sm border border-gray-100 animate-fade-in">
+                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">3. Zkopíruj a vlož do AI</h2>
+                    <textarea id="ai-sada-prompt-text" rows="8" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-600 resize-none mb-4 focus:outline-none" readonly></textarea>
+                    
+                    <div class="flex gap-3">
+                        <button onclick="kopirovatText('ai-sada-prompt-text')" class="w-full bg-gray-900 text-white font-medium py-3 rounded-xl shadow-md hover:bg-gray-800 transition flex items-center justify-center gap-2">
+                            <i class="fa-regular fa-copy"></i> Zkopírovat
+                        </button>
+                        <a href="https://chatgpt.com/" target="_blank" class="w-full bg-white border border-gray-200 text-gray-700 font-medium py-3 rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2">
+                            Otevřít ChatGPT <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ================= OBRAZOVKA 3: KNIHOVNA ================= -->
         <div id="view-knihovna" class="view-section hidden-view">
             <header class="mt-4 mb-4">
                 <h1 class="text-2xl font-bold text-gray-900">Moje knihovna</h1>
@@ -166,7 +180,6 @@
             <div id="seznam-knihovny" class="space-y-4"></div>
         </div>
 
-        <!-- ================= OBRAZOVKA 3C: DETAIL SLOŽKY ================= -->
         <div id="view-detail-slozky" class="view-section hidden-view">
             <header class="mt-4 mb-5 flex justify-between items-start">
                 <div class="flex flex-col gap-3">
@@ -179,7 +192,6 @@
                     </div>
                 </div>
 
-                <!-- TLAČÍTKO MENU PRO SLOŽKU -->
                 <div class="relative mt-2">
                     <button id="btn-slozka-menu" onclick="toggleSlozkaMenu()" class="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm transition">
                         <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -208,9 +220,7 @@
             <div id="detail-slozky-sady" class="space-y-4 pt-2"></div>
         </div>
 
-        <!-- ================= OBRAZOVKA 3B: DETAIL SADY ================= -->
         <div id="view-detail-sady" class="view-section hidden-view">
-            
             <header class="mt-4 mb-5 flex justify-between items-start">
                 <div class="flex flex-col gap-3">
                     <button onclick="jitZpětZeSady()" class="text-indigo-600 font-medium flex items-center gap-2 hover:text-indigo-800 self-start">
@@ -274,70 +284,116 @@
             <div id="detail-karty-kontejner" class="space-y-3"></div>
         </div>
 
-        <!-- ================= OBRAZOVKA 4: VĚTY (AI) ================= -->
         <div id="view-vety" class="view-section hidden-view">
             <header class="mt-4 mb-6 flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-900">AI Věty</h1>
-                    <p class="text-sm text-gray-500 mt-1">Procvičování překladu v kontextu.</p>
+                    <h1 class="text-2xl font-bold text-gray-900">Vyzkoušení AI</h1>
+                    <p class="text-sm text-gray-500 mt-1">Generátor zadání a interaktivní zkoušení.</p>
                 </div>
                 <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 shadow-inner">
                     <i class="fa-solid fa-robot text-lg"></i>
                 </div>
             </header>
 
-            <div class="bg-indigo-50 p-3 rounded-xl border border-indigo-100 mb-6 flex gap-2 items-center shadow-sm">
-                <i class="fa-solid fa-key text-indigo-400"></i>
-                <input type="password" id="ai-api-key" placeholder="Vlož Gemini API klíč..." onchange="ulozApiKey()" class="bg-transparent border-none focus:outline-none text-sm w-full text-indigo-900 placeholder-indigo-300">
-            </div>
-
             <div class="space-y-6">
                 <section class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="font-semibold text-gray-900 mb-4">1. Z čeho chceš zkoušet?</h2>
-                    <div id="ai-vyber-sady" class="space-y-2 mb-4 max-h-40 overflow-y-auto custom-scroll pr-2"></div>
-                    <div class="pt-4 border-t border-gray-100">
-                        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Specifické zaměření (volitelné)</h3>
+                    <h2 class="font-semibold text-gray-900 mb-4">1. Nastavení zkoušení</h2>
+                    <div id="ai-vety-vyber-sady" class="space-y-2 mb-4 max-h-40 overflow-y-auto custom-scroll pr-2"></div>
+                    
+                    <div class="pt-4 border-t border-gray-100 space-y-3">
                         <div class="grid grid-cols-2 gap-3">
-                            <input type="text" id="ai-tema" placeholder="Téma (např. sport)" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50">
-                            <select id="ai-druh" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50">
-                                <option value="">Všechny druhy</option>
-                                <option value="slovesa">Jen slovesa</option>
-                                <option value="podstatná jména">Jen podst. jména</option>
-                                <option value="přídavná jména">Jen příd. jména</option>
+                            <input type="text" id="ai-vety-tema" placeholder="Téma (např. sport)" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50">
+                            
+                            <select id="ai-vety-druh" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50">
+                                <option value="">Všechny slovní druhy</option>
+                                <option value="podstatná jména (שמות עצם)">Jen podstatná jména</option>
+                                <option value="slovesa (פעלים)">Jen slovesa</option>
+                                <option value="přídavná jména (תארים)">Jen přídavná jména</option>
+                                <option value="číslovky (מספרים)">Jen číslovky</option>
+                                <option value="zájmena (כינויי גוף)">Jen zájmena</option>
+                                <option value="předložky (מילות יחס)">Jen předložky</option>
+                                <option value="příslovce (תוארי הפועל)">Jen příslovce</option>
+                                <option value="spojky (מילות קישור)">Jen spojky</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 focus-within:ring-2 focus-within:ring-indigo-500 transition-shadow">
+                                <span class="text-sm text-gray-500 mr-2 whitespace-nowrap">Počet vět:</span>
+                                <input type="number" id="ai-vety-pocet" value="5" min="1" max="50" class="w-full py-2 bg-transparent text-sm focus:outline-none text-right font-medium">
+                            </div>
+                            
+                            <select id="ai-vety-uroven" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50">
+                                <option value="">Běžná obtížnost</option>
+                                <option value="Začátečník (Alef / A1)">Začátečník (Alef)</option>
+                                <option value="Mírně pokročilý (Bet / A2)">Mírně pokročilý (Bet)</option>
+                                <option value="Středně pokročilý (Gimel / B1)">Středně pokročilý (Gimel)</option>
+                                <option value="Pokročilý (Dálet / B2)">Pokročilý (Dálet)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Výchozí jazyk vět (zadání)</label>
+                            <select id="ai-vety-smer" class="w-full px-3 py-2.5 rounded-lg border border-indigo-200 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 bg-indigo-50 text-indigo-900">
+                                <option value="cz_to_he">Zadat ČESKY ➔ Přeložit do Hebrejštiny</option>
+                                <option value="he_to_cz">Zadat HEBREJSKY ➔ Přeložit do Češtiny</option>
                             </select>
                         </div>
                     </div>
-                    <button id="btn-generovat-ai" onclick="generovatVetyAI()" class="w-full mt-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium py-3.5 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i>
-                        <span>Vygenerovat 5 vět</span>
+
+                    <button onclick="generovatPromptProVety()" class="w-full mt-5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-medium py-3.5 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-comment-dots"></i>
+                        <span>Vygenerovat text pro AI</span>
                     </button>
                 </section>
-                <section id="ai-vysledky" class="space-y-3 hidden-view">
-                    <h2 class="text-sm font-medium text-gray-500 pl-1">Tvůj úkol: Přelož</h2>
-                    <div id="ai-vysledky-kontejner" class="space-y-3"></div>
+
+                <div id="ai-vety-vysledek" class="hidden-view bg-white p-5 rounded-2xl shadow-sm border border-gray-100 animate-fade-in space-y-6">
+                    <div>
+                        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">2. Zkopíruj a vlož do ChatGPT</h2>
+                        <textarea id="ai-vety-prompt-text" rows="6" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-600 resize-none mb-3 focus:outline-none" readonly></textarea>
+                        
+                        <div class="flex gap-3">
+                            <button onclick="kopirovatText('ai-vety-prompt-text')" class="w-full bg-gray-900 text-white font-medium py-3 rounded-xl shadow-md hover:bg-gray-800 transition flex items-center justify-center gap-2">
+                                <i class="fa-regular fa-copy"></i> Zkopírovat zadání
+                            </button>
+                            <a href="https://chatgpt.com/" target="_blank" class="w-full bg-white border border-gray-200 text-gray-700 font-medium py-3 rounded-xl hover:bg-gray-50 transition flex items-center justify-center gap-2">
+                                Otevřít ChatGPT <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100 pt-5">
+                        <h2 class="text-sm font-semibold text-gray-900 mb-1">3. Vlož odpověď z ChatGPT zpět sem:</h2>
+                        <p class="text-xs text-gray-400 mb-3">Kliknutím na jakékoli slovo ve větách zjistíš, ze které tvé sady pochází!</p>
+                        <textarea id="ai-vety-vstup-odpovedi" placeholder="Sem vlož celý text, který ti ChatGPT vygeneroval..." rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-sm resize-none mb-3 outline-none"></textarea>
+                        <button onclick="zpracovatVetyZChatGPT()" class="w-full bg-indigo-600 text-white font-medium py-3 rounded-xl shadow hover:bg-indigo-700 transition">Spustit interaktivní zkoušení</button>
+                    </div>
+                </div>
+
+                <section id="interaktivni-vety-kontejner" class="space-y-3 hidden-view">
+                    <h2 class="text-sm font-medium text-gray-500 pl-1">Procvičování (Slova jsou klikací):</h2>
+                    <div id="interaktivni-vety-list" class="space-y-3"></div>
                 </section>
             </div>
         </div>
 
     </main>
 
-    <!-- ================= SPODNÍ NAVIGACE ================= -->
     <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 flex justify-around items-center py-3 pb-5 z-50">
         <div id="nav-prehled" onclick="switchView('prehled')" class="nav-item flex flex-col items-center text-indigo-600 cursor-pointer transition">
             <i class="fa-solid fa-house text-xl mb-1"></i><span class="text-[11px] font-semibold mt-1">Přehled</span>
         </div>
-        <div id="nav-vytvorit" onclick="switchView('vytvorit')" class="nav-item flex flex-col items-center text-gray-400 hover:text-indigo-600 cursor-pointer transition">
+        <div id="nav-vytvorit" onclick="switchView('vytvorit')" class="nav-item flex flex-col items-center text-gray-800 hover:text-indigo-600 cursor-pointer transition">
             <i class="fa-solid fa-plus text-xl mb-1"></i><span class="text-[11px] font-medium mt-1">Vytvořit</span>
         </div>
-        <div id="nav-knihovna" onclick="switchView('knihovna')" class="nav-item flex flex-col items-center text-gray-400 hover:text-indigo-600 cursor-pointer transition">
-            <i class="fa-solid fa-folder text-xl mb-1"></i><span class="text-[11px] font-medium mt-1">Knihovna</span>
+        <div id="nav-knihovna" onclick="switchView('knihovna')" class="nav-item flex flex-col items-center text-gray-800 hover:text-indigo-600 cursor-pointer transition">
+            <i class="fa-solid fa-folder-open text-xl mb-1"></i><span class="text-[11px] font-medium mt-1">Knihovna</span>
         </div>
-        <div id="nav-vety" onclick="switchView('vety')" class="nav-item flex flex-col items-center text-gray-400 hover:text-indigo-600 cursor-pointer transition">
+        <div id="nav-vety" onclick="switchView('vety')" class="nav-item flex flex-col items-center text-gray-800 hover:text-indigo-600 cursor-pointer transition">
             <i class="fa-solid fa-comment-dots text-xl mb-1"></i><span class="text-[11px] font-medium mt-1">Věty</span>
         </div>
     </nav>
 
-    <!-- ================= MOZEK APLIKACE (JavaScript) ================= -->
     <script>
         let mojeLekce = JSON.parse(localStorage.getItem('slovicka_lekce')) || [];
         let mojeSlozky = JSON.parse(localStorage.getItem('slovicka_slozky')) || [];
@@ -372,24 +428,22 @@
                     activeNav.querySelector('span').classList.remove('font-medium'); activeNav.querySelector('span').classList.add('font-semibold');
                 }
             }
-            if(targetView === 'prehled') vykresliPrehled();
+            if(targetView === 'prehled') { vykresliPrehled(); document.getElementById('interaktivni-vety-kontejner').classList.add('hidden-view'); }
             if(targetView === 'knihovna') vykresliKnihovnu();
             if(targetView === 'vytvorit') {
                 aktualizovatNactenaSlovickaVeVytvoreni();
                 document.getElementById('formular-sada').classList.add('hidden-view');
                 document.getElementById('formular-ai-sada').classList.add('hidden-view');
             }
-            if(targetView === 'vety') nactiSadyDoAI(); 
+            if(targetView === 'vety') vykresliSadyProVety(); 
         }
 
-        // Zavírání rozbalovacích menu
         document.addEventListener('click', function(event) {
             const menuSada = document.getElementById('set-dropdown-menu');
             const buttonSada = document.getElementById('btn-set-menu');
             if (menuSada && !menuSada.classList.contains('hidden-view') && !menuSada.contains(event.target) && !buttonSada.contains(event.target)) {
                 menuSada.classList.add('hidden-view');
             }
-
             const menuSlozka = document.getElementById('slozka-dropdown-menu');
             const buttonSlozka = document.getElementById('btn-slozka-menu');
             if (menuSlozka && !menuSlozka.classList.contains('hidden-view') && !menuSlozka.contains(event.target) && !buttonSlozka.contains(event.target)) {
@@ -397,22 +451,22 @@
             }
         });
 
-        // --- PŘEHLED (HISTORIE OPENINGŮ) ---
+        function kopirovatText(elementId) {
+            const text = document.getElementById(elementId).value;
+            navigator.clipboard.writeText(text).then(() => {
+                ukazUpozorneni("📋 Zkopírováno! Vlož do ChatGPT.");
+            });
+        }
+
+        // --- PŘEHLED (HISTORIE) ---
         function vykresliPrehled() {
             const kontejner = document.getElementById('seznam-nedavne');
             kontejner.innerHTML = "";
-
             let vsechnyPolozky = [];
             mojeLekce.forEach(l => { if(l.lastOpened) vsechnyPolozky.push({...l, typPolozky: 'sada'}); });
             mojeSlozky.forEach(s => { if(s.lastOpened) vsechnyPolozky.push({...s, typPolozky: 'slozka'}); });
-
-            if(vsechnyPolozky.length === 0) {
-                kontejner.innerHTML = '<p class="text-gray-500 text-sm">Zatím zde nemáš žádnou historii. Vytvoř si nebo rozklikni sadu v Knihovně!</p>';
-                return;
-            }
-
+            if(vsechnyPolozky.length === 0) { kontejner.innerHTML = '<p class="text-gray-500 text-sm">Zatím zde nemáš žádnou historii.</p>'; return; }
             vsechnyPolozky.sort((a, b) => b.lastOpened - a.lastOpened);
-
             vsechnyPolozky.forEach(polozka => {
                 if(polozka.typPolozky === 'sada') {
                     const pocetSlovicek = polozka.slovicka ? polozka.slovicka.length : 0;
@@ -443,7 +497,6 @@
             aktualniTabKnihovny = tab;
             const btnSady = document.getElementById('tab-knihovna-sady');
             const btnSlozky = document.getElementById('tab-knihovna-slozky');
-            
             if(tab === 'sady') {
                 btnSady.className = "pb-2 text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 transition";
                 btnSlozky.className = "pb-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition";
@@ -455,9 +508,7 @@
         }
 
         function vykresliKnihovnu() {
-            const kontejner = document.getElementById('seznam-knihovny');
-            kontejner.innerHTML = ""; 
-
+            const kontejner = document.getElementById('seznam-knihovny'); kontejner.innerHTML = ""; 
             if(aktualniTabKnihovny === 'sady') {
                 if (mojeLekce.length === 0) { kontejner.innerHTML = '<p class="text-gray-500 text-center mt-10">Tvoje knihovna sad je prázdná.</p>'; return; }
                 [...mojeLekce].reverse().forEach(lekce => {
@@ -465,7 +516,7 @@
                     kontejner.innerHTML += `<div onclick="otevriDetailSady('${lekce.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition cursor-pointer"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-500"><i class="fa-solid fa-layer-group"></i></div><div><h3 class="font-semibold text-gray-900">${lekce.nazev}</h3><p class="text-xs text-gray-500">${pocetSlovicek} slovíček</p></div></div></div>`;
                 });
             } else {
-                if (mojeSlozky.length === 0) { kontejner.innerHTML = '<p class="text-gray-500 text-center mt-10">Zatím nemáš vytvořené žádné složky. Přidej do nich sadu přes 3 tečky!</p>'; return; }
+                if (mojeSlozky.length === 0) { kontejner.innerHTML = '<p class="text-gray-500 text-center mt-10">Zatím nemáš vytvořené žádné složky.</p>'; return; }
                 [...mojeSlozky].reverse().forEach(slozka => {
                     const pocetSad = mojeLekce.filter(l => String(l.slozkaId) === String(slozka.id)).length;
                     kontejner.innerHTML += `<div onclick="otevriDetailSlozky('${slozka.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition cursor-pointer"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-amber-500"><i class="fa-solid fa-folder"></i></div><div><h3 class="font-semibold text-gray-900">${slozka.nazev}</h3><p class="text-xs text-gray-500">${pocetSad} uložených sad</p></div></div></div>`;
@@ -478,19 +529,12 @@
             aktualniOtevrenaSlozkaId = idSlozky;
             const slozka = mojeSlozky.find(s => String(s.id) === String(idSlozky));
             if(!slozka) return;
-
-            slozka.lastOpened = Date.now();
-            localStorage.setItem('slovicka_slozky', JSON.stringify(mojeSlozky));
-
+            slozka.lastOpened = Date.now(); localStorage.setItem('slovicka_slozky', JSON.stringify(mojeSlozky));
             document.getElementById('detail-slozky-nadpis').innerText = slozka.nazev;
-            
-            const kontejner = document.getElementById('detail-slozky-sady');
-            kontejner.innerHTML = "";
-            
+            const kontejner = document.getElementById('detail-slozky-sady'); kontejner.innerHTML = "";
             const sadyVSlozce = mojeLekce.filter(l => String(l.slozkaId) === String(idSlozky));
-            if(sadyVSlozce.length === 0) {
-                kontejner.innerHTML = '<p class="text-gray-400 text-sm italic text-center mt-8">Tato složka je prázdná. Můžeš do ní přidat sady přes menu tří teček.</p>';
-            } else {
+            if(sadyVSlozce.length === 0) { kontejner.innerHTML = '<p class="text-gray-400 text-sm italic text-center mt-8">Tato složka je prázdná.</p>'; } 
+            else {
                 sadyVSlozce.forEach(lekce => {
                     const pocetSlovicek = lekce.slovicka ? lekce.slovicka.length : 0;
                     kontejner.innerHTML += `<div onclick="otevriDetailSady('${lekce.id}')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition cursor-pointer"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-500"><i class="fa-solid fa-layer-group"></i></div><div><h3 class="font-semibold text-gray-900">${lekce.nazev}</h3><p class="text-xs text-gray-500">${pocetSlovicek} slovíček</p></div></div></div>`;
@@ -498,49 +542,32 @@
             }
             switchView('detail-slozky');
         }
-
-        // Menu Složky
         function toggleSlozkaMenu() { document.getElementById('slozka-dropdown-menu').classList.toggle('hidden-view'); }
-
         function prejmenovatSlozku() {
             const slozka = mojeSlozky.find(s => String(s.id) === String(aktualniOtevrenaSlozkaId));
             const novyNazev = prompt("Uprav název složky:", slozka.nazev);
-            if (novyNazev && novyNazev.trim() !== "") {
-                slozka.nazev = novyNazev.trim(); localStorage.setItem('slovicka_slozky', JSON.stringify(mojeSlozky));
-                document.getElementById('detail-slozky-nadpis').innerText = slozka.nazev;
-            }
+            if (novyNazev && novyNazev.trim() !== "") { slozka.nazev = novyNazev.trim(); localStorage.setItem('slovicka_slozky', JSON.stringify(mojeSlozky)); document.getElementById('detail-slozky-nadpis').innerText = slozka.nazev; }
             toggleSlozkaMenu();
         }
-
         function smazatSlozku() {
-            if(confirm("Opravdu chceš smazat tuto složku? Uložené sady se nesmažou, jen se uvolní do Knihovny.")) {
+            if(confirm("Opravdu smazat tuto složku? Sady se vrátí do Knihovny.")) {
                 mojeSlozky = mojeSlozky.filter(s => String(s.id) !== String(aktualniOtevrenaSlozkaId));
                 localStorage.setItem('slovicka_slozky', JSON.stringify(mojeSlozky));
                 mojeLekce.forEach(l => { if (String(l.slozkaId) === String(aktualniOtevrenaSlozkaId)) l.slozkaId = null; });
-                localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce));
-                switchView('knihovna');
+                localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); switchView('knihovna');
             }
         }
-
         function sdiletSlozku() {
             const slozka = mojeSlozky.find(s => String(s.id) === String(aktualniOtevrenaSlozkaId));
             const sadyVSlozce = mojeLekce.filter(l => String(l.slozkaId) === String(aktualniOtevrenaSlozkaId));
             if(!slozka) return; toggleSlozkaMenu();
-            
             let text = `📂 Složka: ${slozka.nazev}\n\n`;
-            sadyVSlozce.forEach(sada => {
-                text += `\n📦 Sada: ${sada.nazev}\n`;
-                if(sada.slovicka) { sada.slovicka.forEach(sl => { text += `- ${sl.ciziSlovo} (${sl.preklad})\n`; }); }
-            });
-
+            sadyVSlozce.forEach(sada => { text += `\n📦 Sada: ${sada.nazev}\n`; if(sada.slovicka) { sada.slovicka.forEach(sl => { text += `- ${sl.ciziSlovo} (${sl.preklad})\n`; }); } });
             if (navigator.share) { navigator.share({ title: slozka.nazev, text: text }).catch(console.error); } 
-            else { navigator.clipboard.writeText(text); ukazUpozorneni("Zkopírováno do schránky (sdílení není podporováno)."); }
+            else { navigator.clipboard.writeText(text); ukazUpozorneni("Zkopírováno do schránky (sdílení nepodporováno)."); }
         }
-
-        // Modal "Přidat sady do složky"
         function otevriModalVyberSad() {
-            toggleSlozkaMenu();
-            const kontejner = document.getElementById('seznam-sad-modal'); kontejner.innerHTML = "";
+            toggleSlozkaMenu(); const kontejner = document.getElementById('seznam-sad-modal'); kontejner.innerHTML = "";
             if(mojeLekce.length === 0) { kontejner.innerHTML = '<p class="text-xs text-gray-400 italic">Nemáš žádné sady v knihovně.</p>'; } 
             else {
                 mojeLekce.forEach(sada => {
@@ -551,164 +578,81 @@
             document.getElementById('modal-pridat-sady').classList.remove('hidden-view');
         }
         function zavriModalVyberSad() { document.getElementById('modal-pridat-sady').classList.add('hidden-view'); }
-        
         function ulozitPridaneSadyHotovo() {
-            const checkboxy = document.querySelectorAll('.sada-do-slozky-cb');
-            checkboxy.forEach(cb => {
+            document.querySelectorAll('.sada-do-slozky-cb').forEach(cb => {
                 const sada = mojeLekce.find(l => String(l.id) === String(cb.value));
-                if(sada) {
-                    if(cb.checked) sada.slozkaId = aktualniOtevrenaSlozkaId;
-                    else if (String(sada.slozkaId) === String(aktualniOtevrenaSlozkaId)) sada.slozkaId = null;
-                }
+                if(sada) { if(cb.checked) sada.slozkaId = aktualniOtevrenaSlozkaId; else if (String(sada.slozkaId) === String(aktualniOtevrenaSlozkaId)) sada.slozkaId = null; }
             });
             localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce));
             zavriModalVyberSad(); otevriDetailSlozky(aktualniOtevrenaSlozkaId); ukazUpozorneni("Složka aktualizována.");
         }
 
-
-        // ====== DETAIL SADY ======
-        function jitZpětZeSady() {
-            if(editModeAktivni) deaktivovatEditationMode();
-            const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId));
-            if(sada && sada.slozkaId && !document.getElementById('view-detail-slozky').classList.contains('hidden-view')) {
-                switchView('detail-slozky');
-            } else {
-                switchView('knihovna');
-            }
-        }
-
         // --- TVORBA SAD ---
         function ukazFormular(typ) { 
-            document.getElementById('formular-sada').classList.add('hidden-view');
-            document.getElementById('formular-ai-sada').classList.add('hidden-view');
+            document.getElementById('formular-sada').classList.add('hidden-view'); document.getElementById('formular-ai-sada').classList.add('hidden-view');
             if (typ === 'sada') document.getElementById('formular-sada').classList.remove('hidden-view'); 
             else if (typ === 'ai-sada') { document.getElementById('formular-ai-sada').classList.remove('hidden-view'); vykresliSadyProAiTvorbu(); }
         }
-
-        function ziskejNeboVytvorSadu(nazevSady = null) {
-            const nazev = nazevSady || document.getElementById('nazev-nove-sady').value.trim(); 
-            if (!nazev) return null;
-            let existujiciSada = mojeLekce.find(lekce => lekce.nazev === nazev);
-            if (!existujiciSada) { existujiciSada = { id: Date.now(), nazev: nazev, slovicka: [], slozkaId: null, lastOpened: Date.now() }; mojeLekce.push(existujiciSada); }
-            return existujiciSada;
-        }
-
         function pridatSlovickoRucne() {
-            const sada = ziskejNeboVytvorSadu(); if (!sada) { ukazUpozorneni("⚠️ Nejprve zadej nahoře název sady!"); return; }
+            const sada = ziskejNeboVytvorSadu(); if (!sada) { ukazUpozorneni("⚠️ Nejprve zadej název sady!"); return; }
             const slovo = document.getElementById('ruco-slovo').value.trim(); const preklad = document.getElementById('ruco-preklad').value.trim();
             if (!slovo || !preklad) { ukazUpozorneni("⚠️ Vyplň obě pole!"); return; }
-            if(!sada.slovicka) sada.slovicka = [];
-            sada.slovicka.push({ id: generujId(), ciziSlovo: slovo, preklad: preklad, starred: false });
-            localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce));
-            document.getElementById('ruco-slovo').value = ""; document.getElementById('ruco-preklad').value = ""; document.getElementById('ruco-slovo').focus();
+            if(!sada.slovicka) sada.slovicka = []; sada.slovicka.push({ id: generujId(), ciziSlovo: slovo, preklad: preklad, starred: false });
+            localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); document.getElementById('ruco-slovo').value = ""; document.getElementById('ruco-preklad').value = ""; document.getElementById('ruco-slovo').focus();
             aktualizovatNactenaSlovickaVeVytvoreni();
         }
-
         function aktualizovatNactenaSlovickaVeVytvoreni() {
-            const kontejner = document.getElementById('nahled-pridanych-slovicek'); const nazev = document.getElementById('nazev-nove-sady').value.trim();
-            kontejner.innerHTML = ""; if(!nazev) return;
+            const kontejner = document.getElementById('nahled-pridanych-slovicek'); const nazev = document.getElementById('nazev-nove-sady').value.trim(); kontejner.innerHTML = ""; if(!nazev) return;
             const sada = mojeLekce.find(lekce => lekce.nazev === nazev);
-            if(sada && sada.slovicka && sada.slovicka.length > 0) {
-                sada.slovicka.slice().reverse().forEach(sl => {
-                    kontejner.innerHTML += `<div class="flex justify-between items-center bg-indigo-50 p-3 rounded-lg border border-indigo-100"><span class="text-indigo-600 text-sm w-1/2 text-left">${sl.preklad}</span><span class="font-bold text-indigo-900 w-1/2 text-right">${sl.ciziSlovo}</span></div>`;
-                });
-            }
+            if(sada && sada.slovicka && sada.slovicka.length > 0) { sada.slovicka.slice().reverse().forEach(sl => { kontejner.innerHTML += `<div class="flex justify-between items-center bg-indigo-50 p-3 rounded-lg border border-indigo-100"><span class="text-indigo-600 text-sm w-1/2 text-left">${sl.preklad}</span><span class="font-bold text-indigo-900 w-1/2 text-right">${sl.ciziSlovo}</span></div>`; }); }
         }
-        function aktualizovatAktualniSadu() { aktualizovatNactenaSlovickaVeVytvoreni(); }
-
         function importovatZQuizletu() {
             const sada = ziskejNeboVytvorSadu(); if (!sada) { ukazUpozorneni("⚠️ Zadej název sady!"); return; }
             const textVstup = document.getElementById('quizlet-input').value; if (!textVstup.trim()) { ukazUpozorneni("⚠️ Nejdřív vlož text!"); return; }
             if(!sada.slovicka) sada.slovicka = [];
-            textVstup.split('\n').forEach(radek => {
-                const casti = radek.split('-'); 
-                if (casti.length === 2) sada.slovicka.push({ id: generujId(), ciziSlovo: casti[0].trim(), preklad: casti[1].trim(), starred: false });
-            });
+            textVstup.split('\n').forEach(radek => { const casti = radek.split('-'); if (casti.length === 2) sada.slovicka.push({ id: generujId(), ciziSlovo: casti[0].trim(), preklad: casti[1].trim(), starred: false }); });
             localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); ukazUpozorneni(`🎉 Import dokončen!`);
             document.getElementById('quizlet-input').value = ""; aktualizovatNactenaSlovickaVeVytvoreni();
         }
 
+        // ====== DETAIL JEDNÉ SADY ======
         function otevriDetailSady(idSady) {
-            aktualniOtevrenaSadaId = idSady; 
-            aktualniFiltr = 'vse'; 
-            prepniStylTlacitekFiltru();
-            
-            editModeAktivni = false; 
-            const editBar = document.getElementById('lista-editace-aktivni');
-            if(editBar) editBar.classList.add('hidden-view');
-
-            const sada = mojeLekce.find(l => String(l.id) === String(idSady)); 
-            if(!sada) { console.error("Sada nenalezena!"); return; }
-
-            if (!sada.slovicka) sada.slovicka = [];
-            sada.slovicka.forEach(sl => { 
-                if(!sl.id) sl.id = generujId(); 
-                if(typeof sl.starred === 'undefined') sl.starred = false; 
-            });
-            
-            sada.lastOpened = Date.now();
-            localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce));
-
+            aktualniOtevrenaSadaId = idSady; aktualniFiltr = 'vse'; prepniStylTlacitekFiltru();
+            editModeAktivni = false; const editBar = document.getElementById('lista-editace-aktivni'); if(editBar) editBar.classList.add('hidden-view');
+            const sada = mojeLekce.find(l => String(l.id) === String(idSady)); if(!sada) return;
+            if (!sada.slovicka) sada.slovicka = []; sada.slovicka.forEach(sl => { if(!sl.id) sl.id = generujId(); if(typeof sl.starred === 'undefined') sl.starred = false; });
+            sada.lastOpened = Date.now(); localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce));
             document.getElementById('detail-sady-nadpis').innerText = sada.nazev;
-            
-            const menuDropdown = document.getElementById('set-dropdown-menu');
-            if(menuDropdown) menuDropdown.classList.add('hidden-view');
-
-            vykresliKartyVDotailu(); 
-            switchView('detail-sady');
+            const menuDropdown = document.getElementById('set-dropdown-menu'); if(menuDropdown) menuDropdown.classList.add('hidden-view');
+            vykresliKartyVDotailu(); switchView('detail-sady');
         }
-
         function toggleSetMenu() { document.getElementById('set-dropdown-menu').classList.toggle('hidden-view'); }
-
         function sdiletSadu() {
             const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId));
             if(!sada) return; toggleSetMenu();
             let text = `📦 Sada slovíček: ${sada.nazev}\n\n`;
             if(sada.slovicka) { sada.slovicka.forEach(sl => { text += `- ${sl.ciziSlovo} (${sl.preklad})\n`; }); }
             if (navigator.share) { navigator.share({ title: sada.nazev, text: text }).catch(console.error); } 
-            else { navigator.clipboard.writeText(text); ukazUpozorneni("Zkopírováno do schránky (sdílení není podporováno)."); }
+            else { navigator.clipboard.writeText(text); ukazUpozorneni("Zkopírováno do schránky."); }
         }
-
-        function aktivovatEditationMode() {
-            editModeAktivni = true;
-            document.getElementById('lista-editace-aktivni').classList.remove('hidden-view');
-            toggleSetMenu(); vykresliKartyVDotailu();
+        function jitZpětZeSady() {
+            if(editModeAktivni) deaktivovatEditationMode();
+            const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId));
+            if(sada && sada.slozkaId && !document.getElementById('view-detail-slozky').classList.contains('hidden-view')) { switchView('detail-slozky'); } else { switchView('knihovna'); }
         }
-        function deaktivovatEditationMode() {
-            editModeAktivni = false;
-            document.getElementById('lista-editace-aktivni').classList.add('hidden-view');
-            vykresliKartyVDotailu();
-        }
-
-        function smazatCeluSadu() {
-            if(confirm("Opravdu smazat celou sadu?")) {
-                mojeLekce = mojeLekce.filter(l => String(l.id) !== String(aktualniOtevrenaSadaId));
-                localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce));
-                switchView('knihovna');
-            }
-        }
-
+        function aktivovatEditationMode() { editModeAktivni = true; document.getElementById('lista-editace-aktivni').classList.remove('hidden-view'); toggleSetMenu(); vykresliKartyVDotailu(); }
+        function deaktivovatEditationMode() { editModeAktivni = false; document.getElementById('lista-editace-aktivni').classList.add('hidden-view'); vykresliKartyVDotailu(); }
+        function smazatCeluSadu() { if(confirm("Opravdu smazat celou sadu?")) { mojeLekce = mojeLekce.filter(l => String(l.id) !== String(aktualniOtevrenaSadaId)); localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); switchView('knihovna'); } }
         function kopirovatSadu() {
             const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId));
-            const novaSada = JSON.parse(JSON.stringify(sada)); novaSada.id = generujId();
-            novaSada.nazev = sada.nazev + " (Kopie)"; novaSada.lastOpened = Date.now();
-            if(novaSada.slovicka) novaSada.slovicka.forEach(sl => sl.id = generujId()); 
-            mojeLekce.push(novaSada);
-            localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce));
-            ukazUpozorneni("Zkopírováno!"); toggleSetMenu();
+            const novaSada = JSON.parse(JSON.stringify(sada)); novaSada.id = generujId(); novaSada.nazev = sada.nazev + " (Kopie)"; novaSada.lastOpened = Date.now();
+            if(novaSada.slovicka) novaSada.slovicka.forEach(sl => sl.id = generujId()); mojeLekce.push(novaSada); localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); ukazUpozorneni("Zkopírováno!"); toggleSetMenu();
         }
-
         function stahnoutSadu() { ukazUpozorneni("Uloženo offline."); toggleSetMenu(); }
 
-        // ====== MODAL ULOŽIT DO SLOŽKY (Ze Sady) ======
-        function otevriModalSlozek() { toggleSetMenu(); vykresliCheckboxySlozek(); document.getElementById('modal-slozky').classList.remove('hidden-view'); }
+        // ====== MODAL SLOŽKY (ZE SADY) ======
+        function otevrModalSlozek() { toggleSetMenu(); vykresliCheckboxySlozek(); document.getElementById('modal-slozky').classList.remove('hidden-view'); }
         function zavriModalSlozek() { document.getElementById('modal-slozky').classList.add('hidden-view'); }
-        function vytvoritSlozku() {
-            const nazev = document.getElementById('nova-slozka-nazev').value.trim(); if(!nazev) return;
-            mojeSlozky.push({ id: generujId(), nazev: nazev, lastOpened: Date.now() });
-            localStorage.setItem('slovicka_slozky', JSON.stringify(mojeSlozky));
-            document.getElementById('nova-slozka-nazev').value = ""; vykresliCheckboxySlozek();
-        }
         function vykresliCheckboxySlozek() {
             const kontejner = document.getElementById('seznam-slozek-modal'); const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId));
             kontejner.innerHTML = ""; if(!sada) return;
@@ -721,17 +665,16 @@
         function ulozitDoSlozkyHotovo() {
             const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId)); const vybranyRadio = document.querySelector('input[name="vyber_slozky"]:checked');
             if (vybranyRadio && sada) sada.slozkaId = parseInt(vybranyRadio.value); else if (sada) sada.slozkaId = null; 
-            localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); zavriModalSlozek();
+            localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); zavriModalSlozek(); ukazUpozorneni("Uloženo do složky.");
         }
 
-        // ================= KARTY (S EDIT MODEM) =================
+        // ================= KARTY & ÚPRAVY KARET =================
         function prepniFiltr(typ) { aktualniFiltr = typ; prepniStylTlacitekFiltru(); vykresliKartyVDotailu(); }
         function prepniStylTlacitekFiltru() {
             const btnVse = document.getElementById('btn-filtr-vse'); const btnHvezdy = document.getElementById('btn-filtr-hvezdy');
             if(aktualniFiltr === 'vse') { btnVse.className = "px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-900 shadow-sm transition"; btnHvezdy.className = "px-3 py-1.5 text-sm font-medium rounded-md text-gray-500 hover:text-gray-900 transition flex items-center gap-1.5"; }
             else { btnHvezdy.className = "px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-900 shadow-sm transition flex items-center gap-1.5"; btnVse.className = "px-3 py-1.5 text-sm font-medium rounded-md text-gray-500 hover:text-gray-900 transition"; }
         }
-
         function smazatSlovicko(slovoId) { if(confirm("Smazat slovíčko?")) { const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId)); if(sada) sada.slovicka = sada.slovicka.filter(s => String(s.id) !== String(slovoId)); localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); vykresliKartyVDotailu(); } }
         function upravitSlovicko(slovoId) {
             const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId)); const slovo = sada.slovicka.find(s => String(s.id) === String(slovoId));
@@ -752,7 +695,6 @@
 
         function vykresliKartyVDotailu() {
             const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId)); if(!sada) return;
-            if(!sada.slovicka) sada.slovicka = [];
             document.getElementById('detail-pocet-celkem').innerText = sada.slovicka.length; document.getElementById('detail-pocet-hvezd').innerText = sada.slovicka.filter(s => s.starred).length;
             const razeni = document.getElementById('detail-razeni').value; const kontejner = document.getElementById('detail-karty-kontejner'); kontejner.innerHTML = "";
             let slovickaKZobrazeni = [...sada.slovicka];
@@ -763,7 +705,7 @@
             slovickaKZobrazeni.forEach(sl => {
                 const starClasses = sl.starred ? "text-indigo-600 bg-indigo-100" : "text-gray-300 hover:text-indigo-500 hover:bg-indigo-50";
                 const ikonaTvar = sl.starred ? "fa-solid" : "fa-regular";
-                const puvodHTML = sl.puvod ? `<span class="text-[10px] text-gray-400 font-medium bg-gray-100 px-2 py-1 rounded-md max-w-[120px] truncate" title="${sl.puvod}">z: ${sl.puvod}</span>` : '';
+                const puvodHTML = sl.puvod ? `<span class="text-[10px] text-gray-400 font-medium bg-gray-100 px-2 py-1 rounded-md max-w-[120px] truncate">z: ${sl.puvod}</span>` : '';
 
                 const editButtonsHTML = editModeAktivni ? `
                     <div class="absolute bottom-2 left-2 flex gap-1 animate-fade-in">
@@ -788,83 +730,155 @@
             });
         }
 
-        // ================= FUNKCE PRO AI SADU =================
+        // ================= PROMPT GENERATOR (TVORBA SADY) =================
         function vykresliSadyProAiTvorbu() {
             const kontejner = document.getElementById('ai-sada-vyber-lekci'); kontejner.innerHTML = "";
-            if (mojeLekce.length === 0) { kontejner.innerHTML = '<p class="text-sm text-gray-500 italic p-2">Nejprve si musíš vytvořit nějaké klasické sady v Knihovně.</p>'; document.getElementById('ai-sada-vybrat-vse').disabled = true; return; }
+            if (mojeLekce.length === 0) { kontejner.innerHTML = '<p class="text-sm text-gray-500 italic p-2">Nejprve musíš mít nějaké klasické sady.</p>'; document.getElementById('ai-sada-vybrat-vse').disabled = true; return; }
             mojeLekce.forEach(lekce => { kontejner.innerHTML += `<label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition border border-transparent"><input type="checkbox" value="${lekce.id}" class="tvorba-ai-checkbox w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"><span class="text-sm font-medium text-gray-700">${lekce.nazev} <span class="text-xs text-gray-400">(${lekce.slovicka ? lekce.slovicka.length : 0})</span></span></label>`; });
         }
         function toggleVybratVseAi(hlavniCheckbox) { document.querySelectorAll('.tvorba-ai-checkbox').forEach(cb => cb.checked = hlavniCheckbox.checked); }
 
-        async function vytvoritSaduPomociAi() {
-            const apiKey = document.getElementById('ai-api-key').value.trim(); if (!apiKey) { ukazUpozorneni("⚠️ Vlož klíč v záložce Věty."); return; }
-            const nazevNoveSady = document.getElementById('ai-sada-nazev').value.trim(); const tema = document.getElementById('ai-sada-tema').value.trim();
-            if (!nazevNoveSady || !tema) { ukazUpozorneni("⚠️ Vyplň název nové sady i téma!"); return; }
+        function generovatPromptProSadu() {
+            const tema = document.getElementById('ai-sada-tema').value.trim(); if (!tema) { ukazUpozorneni("⚠️ Vyplň nejdřív téma!"); return; }
+            const zaksrtnuteCheckboxy = document.querySelectorAll('.tvorba-ai-checkbox:checked'); let vsechnaSlovickaText = "";
+            zaksrtnuteCheckboxy.forEach(box => { const sada = mojeLekce.find(l => String(l.id) === String(box.value)); if (sada && sada.slovicka) { sada.slovicka.forEach(sl => { vsechnaSlovickaText += `${sl.ciziSlovo} - ${sl.preklad}\n`; }); } });
+            if (!vsechnaSlovickaText) { ukazUpozorneni("⚠️ Vyber alespoň jednu sadu se slovíčky!"); return; }
 
-            const zaksrtnuteCheckboxy = document.querySelectorAll('.tvorba-ai-checkbox:checked');
-            let mapaSlovicek = {}; let vsechnaSlovickaText = "";
-            zaksrtnuteCheckboxy.forEach(box => { const sada = mojeLekce.find(l => String(l.id) === String(box.value)); if (sada && sada.slovicka) { sada.slovicka.forEach(sl => { mapaSlovicek[sl.id] = { ...sl, puvod: sada.nazev }; vsechnaSlovickaText += `${sl.id}: ${sl.ciziSlovo} (${sl.preklad}), `; }); } });
-            if (Object.keys(mapaSlovicek).length === 0) { ukazUpozorneni("⚠️ Vyber alespoň jednu sadu se slovíčky!"); return; }
+            const prompt = `Chci vytvořit novou sadu slovíček na téma: "${tema}".
+Z níže uvedeného seznamu mých slovíček vyber pouze ta, která s tímto tématem souvisí (nebo by se dala v tomto kontextu použít).
 
-            const prompt = `Zde je seznam slovíček ve formátu ID: Slovo (Překlad).\n${vsechnaSlovickaText}\n\nÚKOL: Vyber pouze ta slovíčka, která se týkají tématu: "${tema}".\nPRAVIDLO: Odpověz POUZE A JENOM čísly (ID) oddělenými čárkou. Nic jiného nepiš.`;
-            const btn = document.getElementById('btn-vytvorit-ai-sadu'); const puvodniObsah = btn.innerHTML;
-            btn.innerHTML = `<div class="loader"></div><span>Hledám a třídím slovíčka...</span>`; btn.disabled = true;
+PRAVIDLA:
+1. Odpověz POUZE seznamem vybraných slovíček.
+2. Dodrž přesně tento formát: Cizí slovo - Překlad (každé slovo na nový řádek).
+3. Nepiš žádný úvodní ani závěrečný text.
+4. Tento seznam může být dlouhý. Postupuj velmi pečlivě, slovo po slově, a žádné slovíčko ze seznamu neaktivně nepřeskoč ani nevynechej!
 
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2 } }) });
-                const data = await response.json(); if (!response.ok) throw new Error(data.error ? data.error.message : 'Neznámá chyba API');
-                const nalezenaIds = data.candidates[0].content.parts[0].text.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-                if (nalezenaIds.length === 0) { ukazUpozorneni("🤷 AI nenašla žádná slovíčka na toto téma."); return; }
+Můj seznam slovíček:
+${vsechnaSlovickaText}`;
 
-                let novaSada = ziskejNeboVytvorSadu(nazevNoveSady); let pocetPridanych = 0;
-                nalezenaIds.forEach(id => { if (mapaSlovicek[id]) { novaSada.slovicka.push({ id: generujId(), ciziSlovo: mapaSlovicek[id].ciziSlovo, preklad: mapaSlovicek[id].preklad, starred: false, puvod: mapaSlovicek[id].puvod }); pocetPridanych++; } });
-                localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce));
-                document.getElementById('ai-sada-nazev').value = ""; document.getElementById('ai-sada-tema').value = "";
-                document.querySelectorAll('.tvorba-ai-checkbox').forEach(cb => cb.checked = false); document.getElementById('ai-sada-vybrat-vse').checked = false;
-                ukazUpozorneni(`🎉 Úspěšně vytvořena sada s ${pocetPridanych} slovíčky!`); otevriDetailSady(novaSada.id);
-            } catch (error) { alert(`Detailní chyba od Googlu:\n${error.message}`); } finally { btn.innerHTML = puvodniObsah; btn.disabled = false; }
+            document.getElementById('ai-sada-prompt-text').value = prompt;
+            document.getElementById('ai-sada-vysledek').classList.remove('hidden-view');
+            ukazUpozorneni("✅ Prompt vygenerován dole!");
         }
 
-        // ================= 4. AI VĚTY (Zkoušení) =================
-        function nactiApiKey() { const ulozenyKlic = localStorage.getItem('gemini_api_key'); if(ulozenyKlic) document.getElementById('ai-api-key').value = ulozenyKlic; }
-        function ulozApiKey() { localStorage.setItem('gemini_api_key', document.getElementById('ai-api-key').value.trim()); }
-        function nactiSadyDoAI() {
-            const kontejner = document.getElementById('ai-vyber-sady'); kontejner.innerHTML = "";
+        // ================= PROMPT GENERATOR (ZKOUŠENÍ VĚT) =================
+        function vykresliSadyProVety() {
+            const kontejner = document.getElementById('ai-vety-vyber-sady'); kontejner.innerHTML = "";
             if (mojeLekce.length === 0) { kontejner.innerHTML = '<p class="text-sm text-gray-500 italic">Zatím nemáš žádné sady.</p>'; return; }
-            mojeLekce.forEach(lekce => { kontejner.innerHTML += `<label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition"><input type="checkbox" value="${lekce.id}" class="sada-checkbox w-5 h-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500" checked><span class="text-sm font-medium text-gray-700">${lekce.nazev} <span class="text-xs text-gray-400">(${lekce.slovicka ? lekce.slovicka.length : 0})</span></span></label>`; });
+            mojeLekce.forEach(lekce => { kontejner.innerHTML += `<label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition"><input type="checkbox" value="${lekce.id}" class="vety-checkbox w-5 h-5 text-indigo-600 rounded border-gray-300" checked><span class="text-sm font-medium text-gray-700">${lekce.nazev} <span class="text-xs text-gray-400">(${lekce.slovicka ? lekce.slovicka.length : 0})</span></span></label>`; });
         }
 
-        async function generovatVetyAI() {
-            const apiKey = document.getElementById('ai-api-key').value.trim(); if (!apiKey) { ukazUpozorneni("⚠️ Zadej API klíč!"); return; }
-            const zaksrtnuteCheckboxy = document.querySelectorAll('.sada-checkbox:checked'); let slovickaProAI = [];
-            zaksrtnuteCheckboxy.forEach(box => { const sada = mojeLekce.find(l => String(l.id) === String(box.value)); if (sada && sada.slovicka) slovickaProAI = slovickaProAI.concat(sada.slovicka); });
-            if (slovickaProAI.length === 0) { ukazUpozorneni("⚠️ Vyber alespoň jednu sadu!"); return; }
-            const seznamSlovString = slovickaProAI.map(s => `${s.ciziSlovo} (${s.preklad})`).join(", ");
-            const tema = document.getElementById('ai-tema').value.trim(); const druh = document.getElementById('ai-druh').value;
+        function generovatPromptProVety() {
+            const zaksrtnuteCheckboxy = document.querySelectorAll('.vety-checkbox:checked'); let vsechnaSlovickaText = "";
+            zaksrtnuteCheckboxy.forEach(box => { const sada = mojeLekce.find(l => String(l.id) === String(box.value)); if (sada && sada.slovicka) { sada.slovicka.forEach(sl => { vsechnaSlovickaText += `${sl.ciziSlovo} (${sl.preklad}), `; }); } });
+            if (!vsechnaSlovickaText) { ukazUpozorneni("⚠️ Vyber alespoň jednu sadu!"); return; }
 
-            let prompt = `Jsi učitel cizích jazyků. Vymysli 5 jednoduchých vět na překlad pro studenta.\nZde je seznam slovíček: [${seznamSlovString}].\nPRAVIDLA: 1. Použij POUZE slovíčka z tohoto seznamu. 2. Formát: Cizí věta | Český překlad`;
-            if(tema) prompt += `\n4. Zaměř se na téma: ${tema}`; if(druh) prompt += `\n5. Snaž se hodně používat: ${druh}`;
-            const btn = document.getElementById('btn-generovat-ai'); const puvodniObsahTlacitka = btn.innerHTML;
-            btn.innerHTML = `<div class="loader"></div><span>Generuji věty...</span>`; btn.disabled = true;
+            const tema = document.getElementById('ai-vety-tema').value.trim(); 
+            const druh = document.getElementById('ai-vety-druh').value;
+            const uroven = document.getElementById('ai-vety-uroven').value;
+            const pocet = document.getElementById('ai-vety-pocet').value || 5;
+            const smer = document.getElementById('ai-vety-smer').value;
 
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7 } }) });
-                const data = await response.json(); if (!response.ok) throw new Error(data.error ? data.error.message : 'Neznámá chyba API');
-                zobrazVysledkyAI(data.candidates[0].content.parts[0].text);
-            } catch (error) { alert(`Detailní chyba:\n${error.message}`); } finally { btn.innerHTML = puvodniObsahTlacitka; btn.disabled = false; }
+            let smerPravidlo = "";
+            if (smer === "cz_to_he") {
+                smerPravidlo = `Formát odpovědi musí být přesně: Česká věta | Hebrejská věta\n(Tzn. zadání bude česky, překlad bude hebrejsky).`;
+            } else {
+                smerPravidlo = `Formát odpovědi musí být přesně: Hebrejská věta | Česká věta\n(Tzn. zadání bude hebrejsky, překlad bude česky).`;
+            }
+
+            let prompt = `Jsi učitel hebrejštiny. Vymysli pro svého studenta přesně ${pocet} vět na procvičování.
+
+Zde je seznam slovíček, která student bezpečně ovládá: 
+[${vsechnaSlovickaText}]
+
+PRAVIDLA:
+1. Pro tvorbu vět použij POUZE slovíčka z výše uvedeného seznamu (plus nezbytná gramatická/spojovací slova).
+2. Věty musí dávat perfektní smysl.
+3. Odpověz výhradně seznamem vět na nový řádek bez číslování. Nepiš žádný pozdrav ani závěrečné kecy.
+4. ${smerPravidlo}
+5. Tento seznam slovíček může být dlouhý. Postupuj velmi pečlivě, slovo po slově, a žádné slovíčko ze seznamu neaktivně nepřeskoč ani nevynechej!`;
+
+            let doplnek = 6;
+            if(tema) { prompt += `\n${doplnek}. Všechny věty tematicky zaměř na: ${tema}`; doplnek++; }
+            if(druh) { prompt += `\n${doplnek}. V textu vět se snaž extrémně akcentovat tento slovní druh: ${druh}`; doplnek++; }
+            if(uroven) { prompt += `\n${doplnek}. Gramatickou složitost, délku vět a skladbu přizpůsob pro úroveň studenta: ${uroven}`; }
+
+            document.getElementById('ai-vety-prompt-text').value = prompt;
+            document.getElementById('ai-vety-vysledek').classList.remove('hidden-view');
+            ukazUpozorneni("✅ Prompt vygenerován dole!");
         }
 
-        function zobrazVysledkyAI(textOdAI) {
-            const kontejner = document.getElementById('ai-vysledky-kontejner'); kontejner.innerHTML = ""; 
-            textOdAI.split('\n').forEach(radek => {
-                if (radek.includes('|')) {
-                    const casti = radek.split('|'); const cizi = casti[0].trim(); const cesky = casti[1].trim();
-                    kontejner.innerHTML += `<div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100"><p class="font-medium text-gray-900 mb-3 text-lg">${cesky}</p><div class="relative"><button onclick="odhalitPreklad(this)" class="w-full py-2 bg-gray-100 text-gray-500 text-sm font-medium rounded-lg hover:bg-gray-200 transition"><i class="fa-regular fa-eye mr-1"></i> Zobrazit překlad</button><p class="text-indigo-600 font-bold text-center text-lg hidden-view mt-2">${cizi}</p></div></div>`;
+        // ================= BEZPLATNÉ NALÉZÁNÍ PŮVODU SLOVA (ČISTÝ JAVASCRIPT) =================
+        function najdiPuvodSlova(slovo) {
+            // Očistíme slovo od běžné interpunkce (tečky, čárky, otazníky), abychom našli přesnou shodu
+            let cisteSlovo = slovo.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?|'"]/g,"").trim().toLowerCase();
+            if(!cisteSlovo) return;
+            
+            let nalezeneSady = [];
+            mojeLekce.forEach(sada => {
+                if(sada.slovicka) {
+                    let obsahuje = sada.slovicka.some(sl => 
+                        sl.ciziSlovo.toLowerCase().trim() === cisteSlovo || 
+                        sl.preklad.toLowerCase().trim() === cisteSlovo
+                    );
+                    if(obsahuje) nalezeneSady.push(sada.nazev);
                 }
             });
-            document.getElementById('ai-vysledky').classList.remove('hidden-view');
+            
+            if(nalezeneSady.length > 0) {
+                ukazUpozorneni(`🔍 Slovo "${cisteSlovo}" pochází ze sad: ${nalezeneSady.join(', ')}`);
+            } else {
+                ukazUpozorneni(`Slovo "${cisteSlovo}" nebylo nalezeno v žádné tvé sadě.`);
+            }
         }
-        function odhalitPreklad(tlacitko) { tlacitko.classList.add('hidden-view'); tlacitko.nextElementSibling.classList.remove('hidden-view'); }
+
+        // ZPRACOVÁNÍ TEXTU OD AI DO INTERAKTIVNÍCH KARET
+        function zpracovatVetyZChatGPT() {
+            const textVstup = document.getElementById('ai-vety-vstup-odpovedi').value.trim();
+            if(!textVstup) { ukazUpozorneni("⚠️ Nejdřív vlož odpověď z ChatGPT!"); return; }
+
+            const listKontejner = document.getElementById('interaktivni-vety-list');
+            listKontejner.innerHTML = "";
+
+            const radky = textVstup.split('\n');
+            let pocetKaret = 0;
+
+            radky.forEach(radek => {
+                if(radek.includes('|')) {
+                    const casti = radek.split('|');
+                    const zadaniRaw = casti[0].trim();
+                    const prekladRaw = casti[1].trim();
+
+                    // Rozsekáme zadání na slova, která obalíme do klikacích spanů
+                    const zadaniKlikaci = zadaniRaw.split(' ').map(slovo => {
+                        // Ochrana pro případ, že slovo obsahuje uvozovky nebo apostrofy
+                        const bezpecneSlovo = slovo.replace(/'/g, "\\'");
+                        return `<span onclick="najdiPuvodSlova('${bezpecneSlovo}')" class="cursor-pointer hover:underline hover:text-indigo-600 font-medium transition-colors">${slovo}</span>`;
+                    }).join(' ');
+
+                    listKontejner.innerHTML += `
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 animate-fade-in">
+                            <div class="text-gray-900 text-lg mb-3 leading-relaxed">${zadaniKlikaci}</div>
+                            <div class="relative">
+                                <button onclick="this.classList.add('hidden-view'); this.nextElementSibling.classList.remove('hidden-view');" class="w-full py-2 bg-gray-100 text-gray-500 text-sm font-semibold rounded-xl hover:bg-gray-200 transition">
+                                    <i class="fa-regular fa-eye mr-1"></i> Zobrazit překlad
+                                </button>
+                                <p class="text-indigo-600 font-bold text-lg text-center hidden-view mt-2">${prekladRaw}</p>
+                            </div>
+                        </div>
+                    `;
+                    pocetKaret++;
+                }
+            });
+
+            if(pocetKaret > 0) {
+                document.getElementById('interaktivni-vety-kontejner').classList.remove('hidden-view');
+                document.getElementById('ai-vety-vstup-odpovedi').value = ""; // Vyčistíme vstup
+                ukazUpozorneni(`🎉 Načteno ${pocetKaret} interaktivních vět!`);
+            } else {
+                alert("Chyba formátu.\nUjisti se, že ti ChatGPT vrátil řádky oddělené znakem '|' (svislítko). Zkus vygenerovat prompt znovu.");
+            }
+        }
     </script>
 </body>
 </html>
