@@ -14,6 +14,7 @@ self.addEventListener('install', (e) => {
   );
 });
 
+
 // Při načítání stránek se přednostně berou data z offline paměti
 self.addEventListener('fetch', (e) => {
   e.respondWith(
