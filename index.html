@@ -113,7 +113,7 @@
 
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                     <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Hromadný import (i z AI)</h2>
-                    <textarea id="quizlet-input" placeholder="slovo - překlad" rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50 resize-none mb-3"></textarea>
+                    <textarea id="quizlet-input" placeholder="Formát 1: pes - dog&#10;&#10;Formát 2 (pod sebou):&#10;pes&#10;dog" rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50 resize-none mb-3"></textarea>
                     <button onclick="importovatZQuizletu()" class="w-full bg-white text-gray-700 font-medium py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition flex items-center justify-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> Importovat text</button>
                 </div>
 
@@ -667,12 +667,54 @@
         function aktualizovatAktualniSadu() { aktualizovatNactenaSlovickaVeVytvoreni(); }
 
         function importovatZQuizletu() {
-            const sada = ziskejNeboVytvorSadu(); if (!sada) { ukazUpozorneni("⚠️ Zadej název sady!"); return; }
-            const textVstup = document.getElementById('quizlet-input').value; if (!textVstup.trim()) { ukazUpozorneni("⚠️ Nejdřív vlož text!"); return; }
+            const sada = ziskejNeboVytvorSadu(); 
+            if (!sada) { ukazUpozorneni("⚠️ Zadej název sady!"); return; }
+            const textVstup = document.getElementById('quizlet-input').value; 
+            if (!textVstup.trim()) { ukazUpozorneni("⚠️ Nejdřív vlož text!"); return; }
+            
             if(!sada.slovicka) sada.slovicka = [];
-            textVstup.split('\n').forEach(radek => { const casti = radek.split('-'); if (casti.length === 2) sada.slovicka.push({ id: generujId(), ciziSlovo: casti[0].trim(), preklad: casti[1].trim(), starred: false }); });
-            localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); ukazUpozorneni(`🎉 Import dokončen!`);
-            document.getElementById('quizlet-input').value = ""; aktualizovatNactenaSlovickaVeVytvoreni();
+            
+            const radky = textVstup.split('\n').map(r => r.trim()).filter(r => r.length > 0);
+            let pocetPridanych = 0;
+
+            const maOddelovace = radky.some(r => r.includes(' - ') || r.includes('\t') || r.includes(' – '));
+
+            if (maOddelovace) {
+                radky.forEach(radek => {
+                    let oddelovac = '\t';
+                    if (radek.includes(' - ')) oddelovac = ' - ';
+                    else if (radek.includes(' – ')) oddelovac = ' – ';
+                    else if (radek.includes('-')) oddelovac = '-'; 
+
+                    if (radek.includes(oddelovac)) {
+                        const index = radek.indexOf(oddelovac);
+                        const cizi = radek.substring(0, index).trim();
+                        const preklad = radek.substring(index + oddelovac.length).trim();
+                        if(cizi && preklad) {
+                            sada.slovicka.push({ id: generujId(), ciziSlovo: cizi, preklad: preklad, starred: false });
+                            pocetPridanych++;
+                        }
+                    }
+                });
+            } else {
+                for (let i = 0; i < radky.length; i += 2) {
+                    if (i + 1 < radky.length) {
+                        const cizi = radky[i];
+                        const preklad = radky[i + 1];
+                        sada.slovicka.push({ id: generujId(), ciziSlovo: cizi, preklad: preklad, starred: false });
+                        pocetPridanych++;
+                    }
+                }
+            }
+
+            if (pocetPridanych > 0) {
+                localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); 
+                ukazUpozorneni(`🎉 Importováno ${pocetPridanych} slovíček!`);
+                document.getElementById('quizlet-input').value = ""; 
+                aktualizovatNactenaSlovickaVeVytvoreni();
+            } else {
+                ukazUpozorneni("⚠️ Nepodařilo se rozpoznat formát slovíček.");
+            }
         }
 
         function otevriDetailSady(idSady) {
@@ -952,9 +994,8 @@ PRAVIDLA:
                 alert("Chyba formátu.\nUjisti se, že ti ChatGPT vrátil řádky oddělené znakem '|' (svislítko). Zkus vygenerovat prompt znovu.");
             }
         }
-    </script>
-    <script>
-        // Registrace Service Workeru pro offline fungování a PWA instalaci
+        
+        // Registrace Service Workeru pro PWA
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
                 .then(() => console.log('PWA: Service Worker úspěšně aktivován.'))
