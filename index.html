@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Slovíčka - Aplikace</title>
@@ -108,8 +107,14 @@
             <!-- FORMULÁŘ: KLASICKÁ SADA -->
             <div id="formular-sada" class="hidden-view space-y-6">
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">1. Název sady</h2>
-                    <input type="text" id="nazev-nove-sady" onkeyup="aktualizovatAktualniSadu()" placeholder="Např. Lekce 1 - Zvířata" class="w-full px-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-lg font-medium text-gray-900">
+                    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">1. Název a jazyky sady</h2>
+                    <div class="space-y-3">
+                        <input type="text" id="nazev-nove-sady" onkeyup="aktualizovatAktualniSadu()" placeholder="Název sady (např. Lekce 1 - Zvířata)" class="w-full px-4 py-3 rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-lg font-medium text-gray-900">
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" id="jazyk-cizi" placeholder="Cizí jazyk (např. Hebrejština)" class="w-full px-3 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 bg-white text-sm">
+                            <input type="text" id="jazyk-preklad" placeholder="Překlad do (např. Čeština)" value="Čeština" class="w-full px-3 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 bg-white text-sm">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
@@ -363,11 +368,11 @@
                             </select>
                         </div>
 
+                        <!-- DYNAMICKÝ PŘEPÍNAČ JAZYKŮ -->
                         <div>
-                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Výchozí jazyk vět (zadání)</label>
-                            <select id="ai-vety-smer" class="w-full px-3 py-2.5 rounded-lg border border-indigo-200 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 bg-indigo-50 text-indigo-900">
-                                <option value="cz_to_he">Zadat ČESKY ➔ Přeložit do Hebrejštiny</option>
-                                <option value="he_to_cz">Zadat HEBREJSKY ➔ Přeložit do Češtiny</option>
+                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Směr překladu (dle vybraných sad)</label>
+                            <select id="ai-vety-smer" disabled class="w-full px-3 py-2.5 rounded-lg border border-indigo-200 text-sm font-semibold focus:ring-2 focus:ring-indigo-500 bg-indigo-50 text-indigo-900 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+                                <option value="">Nejprve zaškrtni sadu nahoře...</option>
                             </select>
                         </div>
                     </div>
@@ -607,7 +612,6 @@
             else { navigator.clipboard.writeText(text); ukazUpozorneni("Zkopírováno do schránky (sdílení nepodporováno)."); }
         }
 
-        // Modal "Přidat sady do složky"
         function otevriModalVyberSad() {
             toggleSlozkaMenu(); const kontejner = document.getElementById('seznam-sad-modal'); kontejner.innerHTML = "";
             if(mojeLekce.length === 0) { kontejner.innerHTML = '<p class="text-xs text-gray-400 italic">Nemáš žádné sady v knihovně.</p>'; } 
@@ -629,14 +633,6 @@
             zavriModalVyberSad(); otevriDetailSlozky(aktualniOtevrenaSlozkaId); ukazUpozorneni("Složka aktualizována.");
         }
 
-
-        // ====== DETAIL SADY ======
-        function jitZpětZeSady() {
-            if(editModeAktivni) deaktivovatEditationMode();
-            const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId));
-            if(sada && sada.slozkaId && !document.getElementById('view-detail-slozky').classList.contains('hidden-view')) { switchView('detail-slozky'); } else { switchView('knihovna'); }
-        }
-
         // --- TVORBA SAD ---
         function ukazFormular(typ) { 
             document.getElementById('formular-sada').classList.add('hidden-view'); document.getElementById('formular-ai-sada').classList.add('hidden-view');
@@ -645,16 +641,42 @@
         }
 
         function ziskejNeboVytvorSadu(nazevSady = null) {
-            const nazev = nazevSady || document.getElementById('nazev-nove-sady').value.trim(); if (!nazev) return null;
+            const nazev = nazevSady || document.getElementById('nazev-nove-sady').value.trim();
+            const elmCizi = document.getElementById('jazyk-cizi');
+            const elmPreklad = document.getElementById('jazyk-preklad');
+            
+            const jCizi = elmCizi ? elmCizi.value.trim() : 'Cizí jazyk';
+            const jPreklad = elmPreklad ? elmPreklad.value.trim() : 'Čeština';
+
+            if (!nazev) return null;
+
             let existujiciSada = mojeLekce.find(lekce => lekce.nazev === nazev);
-            if (!existujiciSada) { existujiciSada = { id: Date.now(), nazev: nazev, slovicka: [], slozkaId: null, lastOpened: Date.now() }; mojeLekce.push(existujiciSada); }
+            if (!existujiciSada) {
+                // Pokud vytváříme ručně z UI, jazyky jsou povinné
+                if (!nazevSady && (!jCizi || !jPreklad)) {
+                    return 'CHYBA_JAZYK';
+                }
+                existujiciSada = { 
+                    id: Date.now(), 
+                    nazev: nazev, 
+                    slovicka: [], 
+                    slozkaId: null, 
+                    lastOpened: Date.now(),
+                    jazykCizi: jCizi || 'Cizí jazyk',
+                    jazykPreklad: jPreklad || 'Čeština'
+                }; 
+                mojeLekce.push(existujiciSada); 
+            }
             return existujiciSada;
         }
 
         function pridatSlovickoRucne() {
-            const sada = ziskejNeboVytvorSadu(); if (!sada) { ukazUpozorneni("⚠️ Nejprve zadej název sady!"); return; }
+            const sada = ziskejNeboVytvorSadu(); 
+            if (sada === 'CHYBA_JAZYK') { ukazUpozorneni("⚠️ Vyplň název sady i OBA jazyky (Cizí a Překlad)!"); return; }
+            if (!sada) { ukazUpozorneni("⚠️ Nejprve zadej název sady!"); return; }
+
             const slovo = document.getElementById('ruco-slovo').value.trim(); const preklad = document.getElementById('ruco-preklad').value.trim();
-            if (!slovo || !preklad) { ukazUpozorneni("⚠️ Vyplň obě pole!"); return; }
+            if (!slovo || !preklad) { ukazUpozorneni("⚠️ Vyplň obě pole slovíčka!"); return; }
             if(!sada.slovicka) sada.slovicka = []; sada.slovicka.push({ id: generujId(), ciziSlovo: slovo, preklad: preklad, starred: false });
             localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); document.getElementById('ruco-slovo').value = ""; document.getElementById('ruco-preklad').value = ""; document.getElementById('ruco-slovo').focus();
             aktualizovatNactenaSlovickaVeVytvoreni();
@@ -669,15 +691,15 @@
 
         function importovatZQuizletu() {
             const sada = ziskejNeboVytvorSadu(); 
+            if (sada === 'CHYBA_JAZYK') { ukazUpozorneni("⚠️ Vyplň název sady i OBA jazyky (Cizí a Překlad)!"); return; }
             if (!sada) { ukazUpozorneni("⚠️ Zadej název sady!"); return; }
+
             const textVstup = document.getElementById('quizlet-input').value; 
-            if (!textVstup.trim()) { ukazUpozorneni("⚠️ Nejdřív vlož text!"); return; }
+            if (!textVstup.trim()) { ukazUpozorneni("⚠️ Nejdřív vlož text k importu!"); return; }
             
             if(!sada.slovicka) sada.slovicka = [];
-            
             const radky = textVstup.split('\n').map(r => r.trim()).filter(r => r.length > 0);
             let pocetPridanych = 0;
-
             const maOddelovace = radky.some(r => r.includes(' - ') || r.includes('\t') || r.includes(' – '));
 
             if (maOddelovace) {
@@ -686,36 +708,25 @@
                     if (radek.includes(' - ')) oddelovac = ' - ';
                     else if (radek.includes(' – ')) oddelovac = ' – ';
                     else if (radek.includes('-')) oddelovac = '-'; 
-
                     if (radek.includes(oddelovac)) {
                         const index = radek.indexOf(oddelovac);
                         const cizi = radek.substring(0, index).trim();
                         const preklad = radek.substring(index + oddelovac.length).trim();
-                        if(cizi && preklad) {
-                            sada.slovicka.push({ id: generujId(), ciziSlovo: cizi, preklad: preklad, starred: false });
-                            pocetPridanych++;
-                        }
+                        if(cizi && preklad) { sada.slovicka.push({ id: generujId(), ciziSlovo: cizi, preklad: preklad, starred: false }); pocetPridanych++; }
                     }
                 });
             } else {
                 for (let i = 0; i < radky.length; i += 2) {
                     if (i + 1 < radky.length) {
-                        const cizi = radky[i];
-                        const preklad = radky[i + 1];
-                        sada.slovicka.push({ id: generujId(), ciziSlovo: cizi, preklad: preklad, starred: false });
-                        pocetPridanych++;
+                        const cizi = radky[i]; const preklad = radky[i + 1];
+                        sada.slovicka.push({ id: generujId(), ciziSlovo: cizi, preklad: preklad, starred: false }); pocetPridanych++;
                     }
                 }
             }
-
             if (pocetPridanych > 0) {
-                localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); 
-                ukazUpozorneni(`🎉 Importováno ${pocetPridanych} slovíček!`);
-                document.getElementById('quizlet-input').value = ""; 
-                aktualizovatNactenaSlovickaVeVytvoreni();
-            } else {
-                ukazUpozorneni("⚠️ Nepodařilo se rozpoznat formát slovíček.");
-            }
+                localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); ukazUpozorneni(`🎉 Importováno ${pocetPridanych} slovíček!`);
+                document.getElementById('quizlet-input').value = ""; aktualizovatNactenaSlovickaVeVytvoreni();
+            } else { ukazUpozorneni("⚠️ Nepodařilo se rozpoznat formát slovíček."); }
         }
 
         function otevriDetailSady(idSady) {
@@ -779,7 +790,6 @@
             if(aktualniFiltr === 'vse') { btnVse.className = "px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-900 shadow-sm transition"; btnHvezdy.className = "px-3 py-1.5 text-sm font-medium rounded-md text-gray-500 hover:text-gray-900 transition flex items-center gap-1.5"; }
             else { btnHvezdy.className = "px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-900 shadow-sm transition flex items-center gap-1.5"; btnVse.className = "px-3 py-1.5 text-sm font-medium rounded-md text-gray-500 hover:text-gray-900 transition"; }
         }
-
         function smazatSlovicko(slovoId) { if(confirm("Smazat slovíčko?")) { const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId)); if(sada) sada.slovicka = sada.slovicka.filter(s => String(s.id) !== String(slovoId)); localStorage.setItem('slovicka_lekce', JSON.stringify(mojeLekce)); vykresliKartyVDotailu(); } }
         function upravitSlovicko(slovoId) {
             const sada = mojeLekce.find(l => String(l.id) === String(aktualniOtevrenaSadaId)); const slovo = sada.slovicka.find(s => String(s.id) === String(slovoId));
@@ -836,6 +846,32 @@
             });
         }
 
+        // ================= DYNAMICKÁ AKTUALIZACE JAZYKŮ PRO AI =================
+        function aktualizovatJazykyProAi() {
+            const zaksrtnuteCheckboxy = document.querySelectorAll('.vety-checkbox:checked');
+            const selectSmer = document.getElementById('ai-vety-smer');
+            
+            if (zaksrtnuteCheckboxy.length > 0) {
+                const prvniSadaId = zaksrtnuteCheckboxy[0].value;
+                const sada = mojeLekce.find(l => String(l.id) === String(prvniSadaId));
+                
+                const jCizi = sada.jazykCizi || 'Cizí jazyk';
+                const jPreklad = sada.jazykPreklad || 'Čeština';
+                
+                selectSmer.dataset.cizi = jCizi;
+                selectSmer.dataset.preklad = jPreklad;
+                
+                selectSmer.innerHTML = `
+                    <option value="preklad_to_cizi">Zadat: ${jPreklad.toUpperCase()} ➔ Přeložit do: ${jCizi.toUpperCase()}</option>
+                    <option value="cizi_to_preklad">Zadat: ${jCizi.toUpperCase()} ➔ Přeložit do: ${jPreklad.toUpperCase()}</option>
+                `;
+                selectSmer.disabled = false;
+            } else {
+                selectSmer.innerHTML = `<option value="">Nejprve zaškrtni sadu nahoře...</option>`;
+                selectSmer.disabled = true;
+            }
+        }
+
         // ================= PROMPT GENERATOR (TVORBA SADY) =================
         function vykresliSadyProAiTvorbu() {
             const kontejner = document.getElementById('ai-sada-vyber-lekci'); kontejner.innerHTML = "";
@@ -882,7 +918,10 @@ ${vsechnaSlovickaText}`;
         function vykresliSadyProVety() {
             const kontejner = document.getElementById('ai-vety-vyber-sady'); kontejner.innerHTML = "";
             if (mojeLekce.length === 0) { kontejner.innerHTML = '<p class="text-sm text-gray-500 italic">Zatím nemáš žádné sady.</p>'; return; }
-            mojeLekce.forEach(lekce => { kontejner.innerHTML += `<label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition"><input type="checkbox" value="${lekce.id}" class="vety-checkbox w-5 h-5 text-indigo-600 rounded border-gray-300" checked><span class="text-sm font-medium text-gray-700">${lekce.nazev} <span class="text-xs text-gray-400">(${lekce.slovicka ? lekce.slovicka.length : 0})</span></span></label>`; });
+            mojeLekce.forEach(lekce => { 
+                kontejner.innerHTML += `<label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition"><input type="checkbox" value="${lekce.id}" onchange="aktualizovatJazykyProAi()" class="vety-checkbox w-5 h-5 text-indigo-600 rounded border-gray-300" checked><span class="text-sm font-medium text-gray-700">${lekce.nazev} <span class="text-xs text-gray-400">(${lekce.slovicka ? lekce.slovicka.length : 0})</span></span></label>`; 
+            });
+            aktualizovatJazykyProAi();
         }
 
         function generovatPromptProVety() {
@@ -896,16 +935,20 @@ ${vsechnaSlovickaText}`;
             
             const uroven = document.getElementById('ai-vety-uroven').value;
             const pocet = document.getElementById('ai-vety-pocet').value || 5;
-            const smer = document.getElementById('ai-vety-smer').value;
+            
+            const selectSmer = document.getElementById('ai-vety-smer');
+            const smer = selectSmer.value;
+            const jCizi = selectSmer.dataset.cizi || 'Cizí jazyk';
+            const jPreklad = selectSmer.dataset.preklad || 'Čeština';
 
             let smerPravidlo = "";
-            if (smer === "cz_to_he") {
-                smerPravidlo = `Formát odpovědi musí být přesně: Česká věta | Hebrejská věta\n(Tzn. zadání bude česky, překlad bude hebrejsky).`;
+            if (smer === "preklad_to_cizi") {
+                smerPravidlo = `Formát odpovědi musí být přesně: ${jPreklad} věta | ${jCizi} věta\n(Tzn. zadání bude v jazyce: ${jPreklad}, překlad do jazyka: ${jCizi}).`;
             } else {
-                smerPravidlo = `Formát odpovědi musí být přesně: Hebrejská věta | Česká věta\n(Tzn. zadání bude hebrejsky, překlad bude česky).`;
+                smerPravidlo = `Formát odpovědi musí být přesně: ${jCizi} věta | ${jPreklad} věta\n(Tzn. zadání bude v jazyce: ${jCizi}, překlad do jazyka: ${jPreklad}).`;
             }
 
-            let prompt = `Jsi učitel hebrejštiny. Vymysli pro svého studenta přesně ${pocet} vět na procvičování.
+            let prompt = `Jsi učitel cizích jazyků (vyučuješ jazyk: ${jCizi}). Vymysli pro svého studenta přesně ${pocet} vět na procvičování.
 
 Zde je seznam slovíček, která student bezpečně ovládá: 
 [${vsechnaSlovickaText}]
