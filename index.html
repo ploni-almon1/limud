@@ -78,7 +78,6 @@
         <div id="view-prehled" class="view-section">
             <div class="flex items-center gap-3 mb-8 mt-4">
                 <div class="relative flex-grow">
-                    <!-- Přidáno ID a spouštění hledání -->
                     <input type="text" id="hlavni-hledani" onkeyup="globalniHledani()" placeholder="Hledat (např. pes)..." class="w-full pl-5 pr-12 py-3.5 rounded-full border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
                     <i class="fa-solid fa-magnifying-glass absolute right-5 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                 </div>
@@ -87,7 +86,6 @@
                 </div>
             </div>
             
-            <!-- Změněno na dynamický nadpis, aby reflektoval stav hledání -->
             <h2 id="nadpis-nedavne" class="text-lg font-bold mb-4 text-gray-900">Nedávné</h2>
             
             <div id="seznam-nedavne" class="space-y-3"></div>
@@ -313,29 +311,30 @@
                 <button onclick="deaktivovatEditationMode()" class="bg-amber-600 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-amber-700 transition">Hotovo</button>
             </div>
 
-            <!-- NOVINKA: PŘEPÍNAČE PRO SKRYTÍ TEXTŮ -->
-            <div class="bg-white p-3 rounded-xl border border-gray-100 flex gap-4 mb-3 shadow-sm text-sm font-medium">
-                <label class="flex items-center gap-2 cursor-pointer text-gray-700">
-                    <input type="checkbox" id="hide-terms-cb" onchange="toggleHideTerms()" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
-                    Skrýt pojmy
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer text-gray-700">
-                    <input type="checkbox" id="hide-translations-cb" onchange="toggleHideTranslations()" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500">
-                    Skrýt překlady
-                </label>
-            </div>
-
-            <div class="bg-white p-2 rounded-xl border border-gray-100 flex justify-between items-center mb-5 shadow-sm">
+            <!-- NOVÝ SLOUČENÝ PANEL NÁSTROJŮ -->
+            <div class="bg-white p-2 rounded-xl border border-gray-100 flex flex-wrap justify-between items-center mb-5 shadow-sm gap-2">
+                <!-- Filtry (Vše / Hvězdy) -->
                 <div class="flex bg-gray-100 p-1 rounded-lg gap-1">
-                    <button id="btn-filtr-vse" onclick="prepniFiltr('vse')" class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-900 shadow-sm transition">Všechno</button>
+                    <button id="btn-filtr-vse" onclick="prepniFiltr('vse')" class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-900 shadow-sm transition">Vše</button>
                     <button id="btn-filtr-hvezdy" onclick="prepniFiltr('hvezdy')" class="px-3 py-1.5 text-sm font-medium rounded-md text-gray-500 hover:text-gray-900 transition flex items-center gap-1.5">
                         <i class="fa-solid fa-star text-[10px]"></i> <span id="detail-pocet-hvezd">0</span>
                     </button>
                 </div>
-                <select id="detail-razeni" onchange="vykresliKartyVDotailu()" class="text-sm bg-transparent border-none text-gray-600 focus:outline-none cursor-pointer text-right pr-2">
-                    <option value="puvodni">Původní pořadí</option>
-                    <option value="abeceda">Abecedně (A-Z)</option>
-                </select>
+                
+                <div class="flex gap-2">
+                    <!-- Skrývání -->
+                    <select id="detail-skryvani" onchange="aplikujSkryvani()" class="text-sm bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                        <option value="zobrazit_vse">Zobrazit obojí</option>
+                        <option value="skryt_pojmy">Skrýt pojmy</option>
+                        <option value="skryt_preklady">Skrýt překlady</option>
+                    </select>
+
+                    <!-- Pořadí -->
+                    <select id="detail-razeni" onchange="vykresliKartyVDotailu()" class="text-sm bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                        <option value="puvodni">Původní pořadí</option>
+                        <option value="abeceda">Abecedně (A-Z)</option>
+                    </select>
+                </div>
             </div>
             
             <div id="detail-karty-kontejner" class="space-y-3"></div>
@@ -566,7 +565,7 @@
             if(targetView === 'prehled') { 
                 vykresliPrehled(); 
                 document.getElementById('interaktivni-vety-kontejner').classList.add('hidden-view');
-                document.getElementById('hlavni-hledani').value = ""; // Vynuluje vyhledávání při návratu na domovskou obrazovku
+                document.getElementById('hlavni-hledani').value = ""; 
                 globalniHledani();
             }
             if(targetView === 'knihovna') vykresliKnihovnu();
@@ -579,16 +578,17 @@
         }
 
         // ================= FUNKCE PRO SKRÝVÁNÍ TEXTŮ (KARTY) =================
-        function toggleHideTerms() {
+        function aplikujSkryvani() {
+            const volba = document.getElementById('detail-skryvani').value;
             const container = document.getElementById('detail-karty-kontejner');
-            if (document.getElementById('hide-terms-cb').checked) container.classList.add('hide-terms');
-            else container.classList.remove('hide-terms');
-        }
-
-        function toggleHideTranslations() {
-            const container = document.getElementById('detail-karty-kontejner');
-            if (document.getElementById('hide-translations-cb').checked) container.classList.add('hide-translations');
-            else container.classList.remove('hide-translations');
+            
+            container.classList.remove('hide-terms', 'hide-translations');
+            
+            if (volba === 'skryt_pojmy') {
+                container.classList.add('hide-terms');
+            } else if (volba === 'skryt_preklady') {
+                container.classList.add('hide-translations');
+            }
         }
 
         function jitZpětZeSady() {
@@ -850,17 +850,9 @@
             aktualniOtevrenaSadaId = idSady; aktualniFiltr = 'vse'; prepniStylTlacitekFiltru();
             editModeAktivni = false; const editBar = document.getElementById('lista-editace-aktivni'); if(editBar) editBar.classList.add('hidden-view');
 
-            // Resetování zaškrtávátek pro skrývání
-            const cbTerms = document.getElementById('hide-terms-cb');
-            const cbTrans = document.getElementById('hide-translations-cb');
-            if(cbTerms) cbTerms.checked = false;
-            if(cbTrans) cbTrans.checked = false;
-            
-            const cardsContainer = document.getElementById('detail-karty-kontejner');
-            if(cardsContainer) {
-                cardsContainer.classList.remove('hide-terms');
-                cardsContainer.classList.remove('hide-translations');
-            }
+            const skryvaniSelect = document.getElementById('detail-skryvani');
+            if (skryvaniSelect) skryvaniSelect.value = 'zobrazit_vse';
+            aplikujSkryvani();
 
             const sada = mojeLekce.find(l => String(l.id) === String(idSady)); if(!sada) return;
             if (!sada.slovicka) sada.slovicka = []; sada.slovicka.forEach(sl => { if(!sl.id) sl.id = generujId(); if(typeof sl.starred === 'undefined') sl.starred = false; });
@@ -947,9 +939,17 @@
             if (razeni === 'abeceda') slovickaKZobrazeni.sort((a, b) => a.ciziSlovo.localeCompare(b.ciziSlovo));
             if(slovickaKZobrazeni.length === 0) { kontejner.innerHTML = '<p class="text-gray-400 text-sm italic mt-4 text-center">Žádná slovíčka k zobrazení.</p>'; return; }
             
+            // Detekce RTL (Right-To-Left) jazyků podle názvu, který uživatel zadal
+            const jazykSady = sada.jazykCizi ? sada.jazykCizi.toLowerCase() : "";
+            const isRTL = ['hebrej', 'arab', 'aramej', 'fársí', 'pers', 'urd'].some(lang => jazykSady.includes(lang));
+            
+            // Pokud je to RTL, tak pojem půjde doprava a překlad doleva. Jinak pojem vlevo, překlad vpravo.
+            const alignPojem = isRTL ? "text-right" : "text-left";
+            const alignPreklad = isRTL ? "text-left" : "text-right";
+
             slovickaKZobrazeni.forEach(sl => {
-                // Upravené styly hvězdičky - zrušeno pozadí, obarví se pouze samotná ikona
-                const starClasses = sl.starred ? "text-amber-400" : "text-gray-300 hover:text-amber-400";
+                // Barva hvězdičky změněna na indigo-600 aby ladila k aplikaci
+                const starClasses = sl.starred ? "text-indigo-600" : "text-gray-300 hover:text-indigo-500";
                 const ikonaTvar = sl.starred ? "fa-solid" : "fa-regular";
                 const puvodHTML = sl.puvod ? `<span class="text-[10px] text-gray-400 font-medium bg-gray-100 px-2 py-1 rounded-md max-w-[120px] truncate" title="${sl.puvod}">z: ${sl.puvod}</span>` : '';
 
@@ -961,12 +961,12 @@
                         <button onclick="smazatSlovicko('${sl.id}')" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:text-red-500 transition"><i class="fa-solid fa-trash text-xs"></i></button>
                     </div>` : '';
 
-                // Nové rozložení - flex-col, pojem nahoře a překlad dole
+                // Nové rozložení - zarovnání textů na různé strany podle jazyka
                 kontejner.innerHTML += `
                 <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative mb-3 min-h-[100px] flex flex-col justify-center">
-                    <div class="flex flex-col gap-1 mb-6 mt-1 px-1 text-center">
-                        <div class="pojem-text text-xl font-bold text-gray-900 break-words">${sl.ciziSlovo}</div>
-                        <div class="preklad-text text-gray-600 font-medium break-words">${sl.preklad}</div>
+                    <div class="flex flex-col gap-1 mb-6 mt-1 px-1">
+                        <div class="pojem-text text-xl font-bold text-gray-900 break-words ${alignPojem}">${sl.ciziSlovo}</div>
+                        <div class="preklad-text text-gray-600 font-medium break-words ${alignPreklad}">${sl.preklad}</div>
                     </div>
                     ${editButtonsHTML}
                     <div class="absolute bottom-3 right-3 flex items-center gap-3">
